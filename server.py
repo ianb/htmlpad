@@ -9,10 +9,14 @@ sys.path.append(os.path.join('htmlpad.org', 'wsgi-scripts'))
 import htmlpad
 
 def error_404(env, start):
-    return error(env, start, '404 Not Found', 
+    return error(env, start, '404 Not Found',
                  'Not Found: %s' % env['PATH_INFO'])
 
 def static_file(env, start, static_files_dir):
+    ## ianb:
+    ## there are definitely security holes here, particularly escaping the root
+    ## you could use paste.urlparser.StaticURLParser(static_files_dir) instead
+    ## (also silver handles this natively)
     filename = env['PATH_INFO']
     if filename.endswith('/'):
         filename = '%sindex.html' % filename
@@ -32,6 +36,7 @@ def static_file(env, start, static_files_dir):
 
 def application(env, start):
     env['htmlpad.etherpad'] = 'etherpad.mozilla.org:9000'
+    ## ianb: cwd sensitive:
     static_files_dir = os.path.join('htmlpad.org', 'static-files')
 
     # Clearing the template cache on each request allows developers

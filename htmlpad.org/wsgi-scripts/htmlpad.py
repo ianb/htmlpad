@@ -25,6 +25,12 @@ def application(environ, start_response):
     path = environ['PATH_INFO']
     if path == '/':
         start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8')])
+        ## ianb: % is the worst template ever ;)
+        ## if you like minimal, you might like Tempita
+        ## OTOH, I also find Jinja2 to also be perfectly fine, and other Mozillaers use it; some setup code:
+        ## https://github.com/mozilla/openwebapps-directory/blob/master/directory/wsgiapp.py#L38-44
+        ## https://github.com/mozilla/openwebapps-directory/blob/master/directory/wsgiapp.py#L100-117
+        ## w/o a decent template language you'll probably have XSS holes and other problems
         return get_template('index.html') % {'hostname': environ['HTTP_HOST']}
     if path == '/jquery.js':
         start_response('302 Moved Temporarily',
@@ -44,6 +50,7 @@ def application(environ, start_response):
         urlpath = pad_rev_text_url % (padname,
                                       int(match.group('rev')))
     elif match.group('edit') is not None:
+        ## ianb: btw you can do dict(name=padname, edit_pad_url=edit_pad_url, ...)
         edit_page = get_template('edit.html') % {
             'name': padname,
             'edit_pad_url': edit_pad_url,
@@ -53,8 +60,14 @@ def application(environ, start_response):
         start_response('200 OK', [('Content-Type', 'text/html; charset=utf-8')])
         return [edit_page]
     elif ext is None and not has_trailing_slash:
+        ## ianb: webob.exc.HTTPFound(add_slash=True)
         start_response('302 Found', [('Location', '%s/' % path)])
         return []
+    ## ianb: this is where you can actually take a WebOb request, rewrite a few variables to make it point
+    ## to your etherpad server, then use wsgiproxy.exactproxy.proxy_exact_request to forward it on
+    ## (at least I think you are looking to do something like that)
+    ## this does something roughly like that:
+    ## https://github.com/mozilla/appetizer-proxyhacks/blob/master/proxyhack/wsgiapp.py#L112-118
     conn = httplib.HTTPConnection(pad_server)
     conn.request("GET", urlpath)
     resp = conn.getresponse()
